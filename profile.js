@@ -1,12 +1,7 @@
-// ====================
-// 🔥 Firebase Imports
-// ====================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
-// ====================
-// 🚀 Firebase Config (REPLACE THESE VALUES)
-// ====================
+// ---- replace with your real values ----
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -19,53 +14,51 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ====================
-// 🌐 Load Profile
-// ====================
-
-// Elements in HTML
+// Elements
 const title = document.getElementById("title");
 const badge = document.getElementById("badge");
 const idRow = document.getElementById("idRow");
 const errorEl = document.getElementById("error");
 
-// Parse FYNX ID from URL
-const parts = window.location.pathname.split("/");
-const fynxId = parts[parts.length - 1];
+// Robust ID parsing: must match /u/<ID>
+const match = window.location.pathname.match(/\/u\/([^/]+)\/?$/);
+const fynxId = match ? decodeURIComponent(match[1]) : null;
 
-// Load the profile document and render
+if (!fynxId) {
+  title.textContent = "Profile Viewer";
+  errorEl.style.display = "block";
+  errorEl.textContent = "Open a URL like /u/FYNX-XXXXXXX (e.g., https://elhamamini.cc/u/FYNX-3BFA03DA)";
+  throw new Error("Missing /u/<id> in URL");
+}
+
 (async () => {
   try {
-    const ref = doc(db, "profiles", fynxId);
+    const ref = doc(db, "profiles", fynxId); // safe: we validated fynxId
     const snap = await getDoc(ref);
 
     if (!snap.exists()) {
       title.textContent = "Profile Not Found";
-      errorEl.style.display = 'block';
+      errorEl.style.display = "block";
       errorEl.textContent = `No public profile for ${fynxId}`;
       return;
     }
 
     const data = snap.data();
 
-    // If profile is not public
     if (!data.publicEnabled) {
       title.textContent = "Profile Hidden";
-      errorEl.style.display = 'block';
+      errorEl.style.display = "block";
       errorEl.textContent = "This user has a private profile.";
       return;
     }
 
-    // Username or ID
     title.textContent = data.username ? `${data.username} · ${data.userID}` : data.userID;
 
-    // Display ID Row
     idRow.innerHTML = `
       <span class="tag">FYNX ID: ${data.userID}</span>
       ${data.photoURL ? `<img src="${data.photoURL}" alt="avatar" height="32" style="border-radius:50%;">` : ""}
     `;
 
-    // Handle both shapes: stats map OR top-level fields
     const s = data.stats ?? {
       winRate: data.winRate ?? 0,
       maxDD: data.maxDD ?? 0,
@@ -77,11 +70,10 @@ const fynxId = parts[parts.length - 1];
       <span class="tag">Max DD: ${Number(s.maxDD).toFixed(1)}%</span>
       <span class="tag">${Number(s.trades)} trades</span>
     `;
-
   } catch (e) {
     console.error("FULL ERROR:", e);
     title.textContent = "Error Loading Profile";
-    errorEl.style.display = 'block';
+    errorEl.style.display = "block";
     errorEl.textContent = String(e);
   }
 })();
