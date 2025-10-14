@@ -1,13 +1,22 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FYNX Profile</title>
   <link rel="stylesheet" href="styles.css" />
-  <meta name="color-scheme" content="dark light">
+  <meta name="color-scheme" content="dark light" />
 </head>
 <body>
+  <!-- Restore subpath from 404 redirect -->
+  <script>
+    const saved = sessionStorage.getItem('redirectPath');
+    if (saved) {
+      sessionStorage.removeItem('redirectPath');
+      history.replaceState(null, '', saved);
+    }
+  </script>
+
   <main id="app">
     <div class="card">
       <h1 id="title">Loading…</h1>
@@ -15,12 +24,12 @@
       <div id="badge" class="badge"></div>
     </div>
     <p id="error" class="error" style="display:none;"></p>
-
     <footer>
       <a href="./">FYNX Profiles</a>
     </footer>
   </main>
 
+  <!-- Firebase / profile script -->
   <script type="module" src="profile.js"></script>
 </body>
 </html>
