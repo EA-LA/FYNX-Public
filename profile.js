@@ -1,26 +1,48 @@
-// ------------- Parse FYNX ID from /u/<ID> -------------
-const path = window.location.pathname.replace(/\/+$/, ''); // trim trailing /
-const match = path.match(/\/u\/([^/]+)$/);
-const fynxId = match ? decodeURIComponent(match[1]) : null;
+// --- Load the profile document and render ---
+(async () => {
+  try {
+    const ref = doc(db, "profiles", fynxId);
+    const snap = await getDoc(ref);
 
-const title = document.getElementById('title');
-const idRow = document.getElementById('idRow');
-const badge = document.getElementById('badge');
-const errorEl = document.getElementById('error');
+    if (!snap.exists()) {
+      title.textContent = "Profile Not Found";
+      errorEl.style.display = 'block';
+      errorEl.textContent = `No public profile for ${fynxId}`;
+      return;
+    }
 
-if (!fynxId) {
-  title.textContent = "Profile Viewer";
-  idRow.innerHTML = `<span class="tag">Tip: open <code>/u/FYNX-XXXXXX</code></span>`;
-  throw new Error("No /u/<id> in URL");
-}
+    const data = snap.data();
+    if (!data.publicEnabled) {
+      title.textContent = "Profile Hidden";
+      errorEl.style.display = 'block';
+      errorEl.textContent = "This user has a private profile.";
+      return;
+    }
 
-// --------- TEMP MODE (no Firebase yet): show placeholder ----------
-title.textContent = fynxId;
-idRow.innerHTML = `<span class="tag">FYNX ID: ${fynxId}</span>`;
-badge.innerHTML = `
-  <span class="tag">Win Rate: 0.0%</span>
-  <span class="tag">Max DD: 0.0%</span>
-  <span class="tag">0 trades</span>
-`;
-errorEl.style.display = 'block';
-errorEl.textContent = "Firebase not connected yet — this is the website shell. We'll wire data next.";
+    title.textContent = data.username ? `${data.username} · ${data.userID}` : data.userID;
+
+    idRow.innerHTML = `
+      <span class="tag">FYNX ID: ${data.userID}</span>
+      ${data.photoURL ? `<img src="${data.photoURL}" alt="avatar" height="32" style="border-radius:50%;">` : ""}
+    `;
+
+    // Accept both shapes: data.stats.map OR top-level fields
+    const s = data.stats ?? {
+      winRate: data.winRate ?? 0,
+      maxDD: data.maxDD ?? 0,
+      trades: data.trades ?? 0
+    };
+
+    badge.innerHTML = `
+      <span class="tag">Win Rate: ${Number(s.winRate).toFixed(1)}%</span>
+      <span class="tag">Max DD: ${Number(s.maxDD).toFixed(1)}%</span>
+      <span class="tag">${Number(s.trades)} trades</span>
+    `;
+  } catch (e) {
+    console.error(e);
+    title.textContent = "Error Loading Profile";
+    errorEl.style.display = 'block';
+    errorEl.textContent = String(e);
+  }
+})();
+
