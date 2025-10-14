@@ -1,18 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Redirecting…</title>
-    <meta http-equiv="refresh" content="0; url=/" />
-    <script>
-      // Save the current broken path temporarily
-      const redirectTo = window.location.pathname;
-      sessionStorage.setItem('redirectPath', redirectTo);
-      window.location.replace('/');
-    </script>
-  </head>
-  <body>
-    <p>Redirecting…</p>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Redirecting...</title>
+  <meta http-equiv="refresh" content="0; url=/" />
+  <script>
+    // JavaScript fallback redirect
+    window.location.href = "/";
+  </script>
+</head>
+<body>
+  <p>Redirecting… If nothing happens, <a href="/">click here</a>.</p>
+</body>
 </html>
