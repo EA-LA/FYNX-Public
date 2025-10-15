@@ -9,41 +9,26 @@
   <base href="/" />
 </head>
 <body>
+  <!-- restore the saved deep-link path if we came via 404.html -->
+  <script>
+    const saved = sessionStorage.getItem('redirectPath');
+    if (saved) {
+      sessionStorage.removeItem('redirectPath');
+      history.replaceState(null, '', saved);
+    }
+  </script>
+
   <main id="app">
     <div class="card">
       <h1 id="title">Profile Viewer</h1>
-      <p>
-        Open a URL like <strong>/u/FYNX-XXXXXXX</strong> (e.g.,
-        <span style="color:orange">https://elhamamini.cc/u/FYNX-3BFA03DA</span>)
-      </p>
       <div id="idRow" class="row"></div>
       <div id="badge" class="badge"></div>
     </div>
     <p id="error" class="error" style="display:none;"></p>
-    <footer>
-      <a href="/">FYNX Profiles</a>
-    </footer>
+    <footer><a href="/">FYNX Profiles</a></footer>
   </main>
 
-  <script type="module">
-    // Grab the path (e.g., /u/FYNX-12345)
-    const path = window.location.pathname;
-    const idRow = document.getElementById("idRow");
-    const badge = document.getElementById("badge");
-
-    // If user is at /u/....
-    if (path.startsWith("/u/")) {
-      const profileId = path.split("/u/")[1];
-      if (profileId && profileId.length > 0) {
-        document.getElementById("title").innerText = `Profile: ${profileId}`;
-        idRow.innerText = `ID: ${profileId}`;
-        badge.innerText = `Loading profile data... (coming soon)`;
-      } else {
-        badge.innerText = "No valid ID found in URL.";
-      }
-    } else {
-      badge.innerText = "Welcome to FYNX Profile Viewer";
-    }
-  </script>
+  <!-- Your profile script (loads Firebase + Firestore and renders the profile) -->
+  <script type="module" src="profile.js"></script>
 </body>
 </html>
