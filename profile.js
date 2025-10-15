@@ -1,79 +1,82 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+// ----- Firebase (CDN) -----
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ---- replace with your real values ----
+// TODO: put YOUR values here
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey:        "YOUR_API_KEY",
+  authDomain:    "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId:     "YOUR_PROJECT_ID",
 };
 
+// Init
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db  = getFirestore(app);
 
-// Elements
-const title = document.getElementById("title");
-const badge = document.getElementById("badge");
-const idRow = document.getElementById("idRow");
-const errorEl = document.getElementById("error");
+// UI handles
+const titleEl = document.getElementById('title');
+const idRowEl = document.getElementById('idRow');
+const badgeEl = document.getElementById('badge');
+const errEl   = document.getElementById('error');
 
-// Robust ID parsing: must match /u/<ID>
-const match = window.location.pathname.match(/\/u\/([^/]+)\/?$/);
-const fynxId = match ? decodeURIComponent(match[1]) : null;
-
-if (!fynxId) {
-  title.textContent = "Profile Viewer";
-  errorEl.style.display = "block";
-  errorEl.textContent = "Open a URL like /u/FYNX-XXXXXXX (e.g., https://elhamamini.cc/u/FYNX-3BFA03DA)";
-  throw new Error("Missing /u/<id> in URL");
+// Extract /u/FYNX-XXXXXX
+function getFynxIdFromPath() {
+  const p = window.location.pathname;         // "/", "/u/FYNX-3BFA03DA"
+  if (!p.startsWith('/u/')) return null;
+  const id = p.slice(3).trim();               // after "/u/"
+  return id.length ? id : null;
 }
 
 (async () => {
+  const fynxId = getFynxIdFromPath();
+
+  if (!fynxId) {
+    titleEl.textContent = "Profile Viewer";
+    badgeEl.textContent = "Open a URL like /u/FYNX-XXXXXXX (e.g. /u/FYNX-3BFA03DA)";
+    return;
+  }
+
   try {
-    const ref = doc(db, "profiles", fynxId); // safe: we validated fynxId
+    titleEl.textContent = `Profile: ${fynxId}`;
+    idRowEl.innerHTML = `<span class="tag">FYNX ID: ${fynxId}</span>`;
+
+    const ref  = doc(db, "profiles", fynxId);
     const snap = await getDoc(ref);
 
     if (!snap.exists()) {
-      title.textContent = "Profile Not Found";
-      errorEl.style.display = "block";
-      errorEl.textContent = `No public profile for ${fynxId}`;
+      errEl.style.display = 'block';
+      errEl.textContent   = `No public profile for ${fynxId}`;
       return;
     }
 
     const data = snap.data();
-
-    if (!data.publicEnabled) {
-      title.textContent = "Profile Hidden";
-      errorEl.style.display = "block";
-      errorEl.textContent = "This user has a private profile.";
+    if (data.publicEnabled !== true) {
+      errEl.style.display = 'block';
+      errEl.textContent   = "This user has a private profile.";
       return;
     }
 
-    title.textContent = data.username ? `${data.username} · ${data.userID}` : data.userID;
+    const username = data.username || fynxId;
+    const winRate  = Number(data.winRate ?? data.stats?.winRate ?? 0);
+    const maxDD    = Number(data.maxDD   ?? data.stats?.maxDD   ?? 0);
+    const trades   = Number(data.trades  ?? data.stats?.trades  ?? 0);
 
-    idRow.innerHTML = `
-      <span class="tag">FYNX ID: ${data.userID}</span>
-      ${data.photoURL ? `<img src="${data.photoURL}" alt="avatar" height="32" style="border-radius:50%;">` : ""}
+    // header
+    idRowEl.innerHTML = `
+      <span class="tag">👤 ${username}</span>
+      <span class="tag">🪪 ${fynxId}</span>
+      ${data.photoURL ? `<img src="${data.photoURL}" alt="avatar" height="32" style="border-radius:50%; margin-left:8px;">` : ""}
     `;
 
-    const s = data.stats ?? {
-      winRate: data.winRate ?? 0,
-      maxDD: data.maxDD ?? 0,
-      trades: data.trades ?? 0
-    };
-
-    badge.innerHTML = `
-      <span class="tag">Win Rate: ${Number(s.winRate).toFixed(1)}%</span>
-      <span class="tag">Max DD: ${Number(s.maxDD).toFixed(1)}%</span>
-      <span class="tag">${Number(s.trades)} trades</span>
+    // badge
+    badgeEl.innerHTML = `
+      <span class="tag">Win Rate <b>${winRate.toFixed(1)}%</b></span>
+      <span class="tag">Max DD <b>${maxDD.toFixed(1)}%</b></span>
+      <span class="tag"><b>${trades}</b> trades</span>
     `;
   } catch (e) {
-    console.error("FULL ERROR:", e);
-    title.textContent = "Error Loading Profile";
-    errorEl.style.display = "block";
-    errorEl.textContent = String(e);
+    console.error(e);
+    errEl.style.display = 'block';
+    errEl.textContent   = "Error loading profile";
   }
 })();
