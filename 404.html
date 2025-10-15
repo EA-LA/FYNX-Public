@@ -3,14 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Redirecting...</title>
+  <title>Redirecting…</title>
   <meta http-equiv="refresh" content="0; url=/" />
   <script>
-    // JavaScript fallback redirect
-    window.location.href = "/";
+    // Save the requested deep link and bounce to /
+    sessionStorage.setItem('redirectPath', window.location.pathname);
+    window.location.replace('/');
   </script>
 </head>
-<body>
-  <p>Redirecting… If nothing happens, <a href="/">click here</a>.</p>
-</body>
+<body><p>Redirecting…</p></body>
 </html>
