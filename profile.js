@@ -1,82 +1,78 @@
-// ----- Firebase (CDN) -----
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<!-- /profile.js (ESM) -->
+<script type="module">
+// --- Imports ---
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-// TODO: put YOUR values here
-const firebaseConfig = {
-  apiKey:        "YOUR_API_KEY",
-  authDomain:    "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId:     "YOUR_PROJECT_ID",
-};
+// --- Helpers ---
+const $ = (sel) => document.querySelector(sel);
 
-// Init
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+// Parse /u/<FYNX-ID>
+const fynxId = location.pathname.split("/").filter(Boolean)[1]; // index 0="u", 1="<ID>"
 
-// UI handles
-const titleEl = document.getElementById('title');
-const idRowEl = document.getElementById('idRow');
-const badgeEl = document.getElementById('badge');
-const errEl   = document.getElementById('error');
+// UI refs
+const titleEl = $("#title");
+const idRowEl = $("#idRow");
+const badgeEl = $("#badge");
+const errorEl = $("#error");
 
-// Extract /u/FYNX-XXXXXX
-function getFynxIdFromPath() {
-  const p = window.location.pathname;         // "/", "/u/FYNX-3BFA03DA"
-  if (!p.startsWith('/u/')) return null;
-  const id = p.slice(3).trim();               // after "/u/"
-  return id.length ? id : null;
+// Quick sanity
+if (!fynxId) {
+  titleEl.textContent = "Profile Viewer";
+  errorEl.style.display = "block";
+  errorEl.textContent = 'Open a URL like /u/FYNX-XXXXXXX (e.g. /u/FYNX-3BFA03DA)';
+  throw new Error("Missing /u/<ID> in URL");
 }
 
+titleEl.textContent = `Profile: ${fynxId}`;
+
 (async () => {
-  const fynxId = getFynxIdFromPath();
-
-  if (!fynxId) {
-    titleEl.textContent = "Profile Viewer";
-    badgeEl.textContent = "Open a URL like /u/FYNX-XXXXXXX (e.g. /u/FYNX-3BFA03DA)";
-    return;
-  }
-
   try {
-    titleEl.textContent = `Profile: ${fynxId}`;
-    idRowEl.innerHTML = `<span class="tag">FYNX ID: ${fynxId}</span>`;
+    if (!window.db) {
+      errorEl.style.display = "block";
+      errorEl.textContent = "Firebase not initialized. Paste your firebaseConfig in index.html.";
+      console.error("window.db is undefined. Check firebaseConfig.");
+      return;
+    }
 
-    const ref  = doc(db, "profiles", fynxId);
+    // Load Firestore doc
+    const ref = doc(window.db, "profiles", fynxId);
     const snap = await getDoc(ref);
 
     if (!snap.exists()) {
-      errEl.style.display = 'block';
-      errEl.textContent   = `No public profile for ${fynxId}`;
+      errorEl.style.display = "block";
+      errorEl.textContent = `No public profile for ${fynxId}`;
       return;
     }
 
     const data = snap.data();
+
     if (data.publicEnabled !== true) {
-      errEl.style.display = 'block';
-      errEl.textContent   = "This user has a private profile.";
+      errorEl.style.display = "block";
+      errorEl.textContent = "This user has a private profile.";
       return;
     }
 
-    const username = data.username || fynxId;
-    const winRate  = Number(data.winRate ?? data.stats?.winRate ?? 0);
-    const maxDD    = Number(data.maxDD   ?? data.stats?.maxDD   ?? 0);
-    const trades   = Number(data.trades  ?? data.stats?.trades  ?? 0);
-
-    // header
+    // Header
     idRowEl.innerHTML = `
-      <span class="tag">👤 ${username}</span>
-      <span class="tag">🪪 ${fynxId}</span>
-      ${data.photoURL ? `<img src="${data.photoURL}" alt="avatar" height="32" style="border-radius:50%; margin-left:8px;">` : ""}
+      <span class="tag">FYNX ID: ${data.userID ?? fynxId}</span>
+      ${data.photoURL ? `<img src="${data.photoURL}" alt="avatar" height="32" style="border-radius:50%;margin-left:8px;">` : ""}
     `;
 
-    // badge
+    // Stats (support both top-level or stats map)
+    const s = data.stats ?? {};
+    const winRate = s.winRate ?? data.winRate ?? 0;
+    const maxDD   = s.maxDD   ?? data.maxDD   ?? 0;
+    const trades  = s.trades  ?? data.trades  ?? 0;
+
     badgeEl.innerHTML = `
-      <span class="tag">Win Rate <b>${winRate.toFixed(1)}%</b></span>
-      <span class="tag">Max DD <b>${maxDD.toFixed(1)}%</b></span>
-      <span class="tag"><b>${trades}</b> trades</span>
+      <span class="tag">Win Rate: ${Number(winRate).toFixed(1)}%</span>
+      <span class="tag">Max DD: ${Number(maxDD).toFixed(1)}%</span>
+      <span class="tag">${Number(trades)} trades</span>
     `;
   } catch (e) {
     console.error(e);
-    errEl.style.display = 'block';
-    errEl.textContent   = "Error loading profile";
+    errorEl.style.display = "block";
+    errorEl.textContent = e?.message ?? String(e);
   }
 })();
+</script>
