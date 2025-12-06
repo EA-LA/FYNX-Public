@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "Q2D96GQT93.com.elhamamini.FYNX"
+        ],
+        "components": [
+          {
+            "/": "/u/*",
+            "comment": "Public profile links like https://profiles.elhamamini.cc/u/FYNX-XXXXXXX"
+          }
+        ]
+      }
+    ]
+  }
+}
